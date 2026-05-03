@@ -122,18 +122,33 @@ export default function Transfers() {
               <div className="creation-grid">
                 <div className="input-wrapper">
                   <label className="input-label">From Warehouse</label>
-                  <select className="jex-input" required value={formData.fromWarehouseId} onChange={e => setFormData({...formData, fromWarehouseId: e.target.value})}>
-                    <option value="">-- Select --</option>
-                    {warehouses.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
-                  </select>
+                  <input 
+                    list="warehouses-list"
+                    className="jex-input" 
+                    placeholder="Type to search..."
+                    required 
+                    onChange={e => {
+                      const selected = warehouses.find(w => w.name === e.target.value);
+                      if (selected) setFormData({...formData, fromWarehouseId: selected._id});
+                    }}
+                  />
                 </div>
                 <div className="input-wrapper">
                   <label className="input-label">To Warehouse</label>
-                  <select className="jex-input" required value={formData.toWarehouseId} onChange={e => setFormData({...formData, toWarehouseId: e.target.value})}>
-                    <option value="">-- Select --</option>
-                    {warehouses.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
-                  </select>
+                  <input 
+                    list="warehouses-list"
+                    className="jex-input" 
+                    placeholder="Type to search..."
+                    required 
+                    onChange={e => {
+                      const selected = warehouses.find(w => w.name === e.target.value);
+                      if (selected) setFormData({...formData, toWarehouseId: selected._id});
+                    }}
+                  />
                 </div>
+                <datalist id="warehouses-list">
+                  {warehouses.map(w => <option key={w._id} value={w.name} />)}
+                </datalist>
               </div>
 
               <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', marginTop: '20px' }}>
