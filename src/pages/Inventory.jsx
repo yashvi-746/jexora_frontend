@@ -6,6 +6,9 @@ export default function Inventory() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
+  const [warehouses, setWarehouses] = useState([]);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveData, setReceiveData] = useState({ productId: '', warehouseId: '', quantity: 1 });
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // Per-row edit state: { [inventoryId]: { quantity, minStocks } }
@@ -14,12 +17,14 @@ export default function Inventory() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [invRes, prodRes] = await Promise.all([
+      const [invRes, prodRes, wareRes] = await Promise.all([
         api.get('/inventory'),
-        api.get('/products')
+        api.get('/products'),
+        api.get('/warehouses')
       ]);
       setInventory(Array.isArray(invRes.data) ? invRes.data : []);
       setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
+      setWarehouses(Array.isArray(wareRes.data) ? wareRes.data : []);
     } catch (err) {
       console.error('Error fetching inventory data:', err);
     } finally {
@@ -77,6 +82,18 @@ export default function Inventory() {
     return                            { label: 'In Stock',     color: '#10b981', bg: '#ecfdf5' };
   };
 
+  const handleReceiveStock = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/inventory', receiveData);
+      setShowReceiveModal(false);
+      setReceiveData({ productId: '', warehouseId: '', quantity: 1 });
+      fetchData();
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   return (
     <div className="products-page">
       {/* Header */}
@@ -87,6 +104,9 @@ export default function Inventory() {
           </div>
           <h1 className="page-headline">Inventory Management</h1>
         </div>
+        <button className="jex-btn btn-primary" onClick={() => setShowReceiveModal(true)}>
+          Receive Stock +
+        </button>
       </div>
 
       {/* Inventory Table */}
@@ -136,14 +156,12 @@ export default function Inventory() {
                       <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>
                         {item.productId?.name || 'Deleted Product'}
                       </div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--jex-primary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                         📍 {item.warehouseId?.name || 'No Warehouse'}
+                      </div>
                       {item.productId?.categoryId?.name && (
                         <div style={{ fontSize: '0.75rem', color: 'var(--jex-text-muted)', marginTop: '2px' }}>
                           {item.productId.categoryId.name}
-                        </div>
-                      )}
-                      {item.productId?.price && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--jex-text-muted)' }}>
-                          ₹{item.productId.price}
                         </div>
                       )}
                     </td>
@@ -234,6 +252,56 @@ export default function Inventory() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Receive Stock Modal */}
+      {showReceiveModal && (
+        <div className="modal-overlay" onClick={() => setShowReceiveModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>Receive Stock</h2>
+            <form onSubmit={handleReceiveStock} style={{ marginTop: '20px' }}>
+              <div className="input-wrapper">
+                <label className="input-label">Product</label>
+                <select 
+                  className="jex-input" 
+                  required 
+                  value={receiveData.productId} 
+                  onChange={e => setReceiveData({...receiveData, productId: e.target.value})}
+                >
+                  <option value="">-- Select Product --</option>
+                  {products.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div className="input-wrapper" style={{ marginTop: '15px' }}>
+                <label className="input-label">Warehouse</label>
+                <select 
+                  className="jex-input" 
+                  required 
+                  value={receiveData.warehouseId} 
+                  onChange={e => setReceiveData({...receiveData, warehouseId: e.target.value})}
+                >
+                  <option value="">-- Select Warehouse --</option>
+                  {warehouses.map(w => <option key={w._id} value={w._id}>{w.name}</option>)}
+                </select>
+              </div>
+              <div className="input-wrapper" style={{ marginTop: '15px' }}>
+                <label className="input-label">Quantity</label>
+                <input 
+                  type="number" 
+                  className="jex-input" 
+                  min="1" 
+                  required 
+                  value={receiveData.quantity} 
+                  onChange={e => setReceiveData({...receiveData, quantity: e.target.value})}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="submit" className="jex-btn btn-primary" style={{ flex: 1 }}>Confirm Receipt</button>
+                <button type="button" className="jex-btn btn-ghost" style={{ flex: 1 }} onClick={() => setShowReceiveModal(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
